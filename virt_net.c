@@ -25,12 +25,11 @@
 //#include <asm/system.h>
 #include <asm/io.h>
 #include <asm/irq.h>
-
-static struct net_device *vnet_dev;
+#include "share.h"
+struct net_device *vnet_dev;
 
 static void emulator_rx_packet(struct sk_buff *skb, struct net_device *dev)
 {
-	int ret;
 	/* 参考LDD3 */
 	unsigned char *type;
 	struct iphdr *ih;
@@ -42,20 +41,6 @@ static void emulator_rx_packet(struct sk_buff *skb, struct net_device *dev)
 
 	// 从硬件读出/保存数据
 	/* 对调"源/目的"的mac地址 */
-
-	printk("------------skb->len=%d\n",skb->len);
-	printk("-----------skb_tailroom=%d\n",skb_tailroom(skb));
-	if(skb->len < 100) {
-		ret= skb_pad(skb, 100 - skb->len);
-		printk("-----------skb_tailroom=%d\n",skb_tailroom(skb));
-		if(ret < 0)
-			printk("err");
-		printk("--------------skb->len=%d\n",skb->len);
-	}
-	skb_put(skb, 100 - skb->len);
-	printk("-----------skb_tailroom=%d\n",skb_tailroom(skb));
-	printk("---------------skb->len=%d\n",skb->len);
-
 	ethhdr = (struct ethhdr *)skb->data;
 	memcpy(tmp_dev_addr, ethhdr->h_dest, ETH_ALEN);
 	memcpy(ethhdr->h_dest, ethhdr->h_source, ETH_ALEN);
@@ -101,6 +86,7 @@ static int virt_net_send_packet(struct sk_buff *skb, struct net_device *dev)
 	static int cnt = 0;
 	printk("virt_net_send_packet cnt = %d\n", ++cnt);
 
+	dump_mem(skb->data, skb->len);
 	/* 对于真实的网卡, 把skb里的数据通过网卡发送出去 */
 	netif_stop_queue(dev); /* 停止该网卡的队列 */
     /* ...... */           /* 把skb的数据写入网卡 */
